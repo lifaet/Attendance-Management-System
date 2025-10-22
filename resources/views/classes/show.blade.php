@@ -6,14 +6,35 @@
                     <div class="flex justify-between items-center mb-6">
                         <h2 class="text-2xl font-bold">{{ $class->name }}</h2>
                         @can('takeAttendance', $class)
-                               <div class="space-x-4">
-                            <a href="{{ route('classes.attendance.create', $class) }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                Take Attendance
-                            </a>
-                               <a href="{{ route('classes.sessions.show', $class) }}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-                                   Manage Sessions
-                               </a>
-                               </div>
+                            <div class="space-x-4">
+                                @if($class->hasActiveSession())
+                                    <div class="flex items-center space-x-4">
+                                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                                            Class in Session
+                                        </span>
+                                        <a href="{{ route('classes.attendance.pending', $class) }}" 
+                                           class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                                            View Pending Attendance
+                                        </a>
+                                        <form action="{{ route('classes.sessions.end', ['session' => $class->activeSession()]) }}" method="POST" class="inline">
+                                            @csrf
+                                            @method('PUT')
+                                            <button type="submit" 
+                                                class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">
+                                                End Session
+                                            </button>
+                                        </form>
+                                    </div>
+                                @else
+                                    <form action="{{ route('classes.sessions.store', $class) }}" method="POST" class="inline">
+                                        @csrf
+                                        <button type="submit" 
+                                            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+                                            Start Class Session
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
                         @endcan
                     </div>
 

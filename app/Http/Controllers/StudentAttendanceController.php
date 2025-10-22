@@ -33,20 +33,27 @@ class StudentAttendanceController extends Controller
 
     public function mark(Request $request, ClassRoom $class)
     {
+        $this->authorize('markAttendance', $class);
+
         $user = $request->user();
         if (!$class->students()->where('id', $user->id)->exists()) {
             return back()->with('error', 'You are not enrolled in this class.');
         }
 
-        $activeSession = $class->sessions()
-            ->where('status', 'active')
-            ->first();
-
+        $activeSession = $class->activeSession();
         if (!$activeSession) {
             return back()->with('error', 'No active session for this class.');
         }
 
         // Check if attendance was already marked for this session
+        $existingRecord = AttendanceRecord::where([
+            'class_id' => $class->id,
+            'student_id' => $user->id,
+            'class_session_id' => $activeSession->id,
+        ])->first();
+
+        if ($existingRecord) {
+            return back()->with('error', 'You have already marked your attendance for this session.');
         $existingRecord = AttendanceRecord::where([
             'student_id' => $user->id,
             'class_id' => $class->id,

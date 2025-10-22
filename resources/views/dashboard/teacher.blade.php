@@ -15,16 +15,38 @@
                                     <p class="text-gray-600">{{ $class->schedule }}</p>
                                     <p class="text-gray-600">Room: {{ $class->room }}</p>
                                 </div>
-                                    <a href="{{ route('classes.attendance.create', $class) }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-                                    Take Attendance
-                                </a>
-                            </div>
+                                    @if($class->hasActiveSession())
+                                        <div class="flex space-x-2">
+                                            <a href="{{ route('classes.attendance.pending', $class) }}" 
+                                               class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                                                View Pending
+                                            </a>
+                                            <form action="{{ route('classes.sessions.end', ['session' => $class->activeSession()]) }}" method="POST">
+                                                @csrf
+                                                @method('PUT')
+                                                <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
+                                                    End Session
+                                                </button>
+                                            </form>
+                                        </div>
+                                    @else
+                                        <form action="{{ route('classes.sessions.store', $class) }}" method="POST">
+                                            @csrf
+                                            <button type="submit" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                                                Start Session
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
                             
                             <div class="mt-4">
                                 <p class="text-sm text-gray-600">{{ $class->students->count() }} Students</p>
-                                <div class="mt-2">
+                                <div class="mt-2 space-x-4">
+                                    <a href="{{ route('classes.attendance.report', ['class' => $class]) }}" class="text-blue-600 hover:text-blue-800">
+                                        View Report
+                                    </a>
                                     <a href="{{ route('classes.show', $class) }}" class="text-blue-600 hover:text-blue-800">
-                                        View Details →
+                                        Class Details →
                                     </a>
                                 </div>
                             </div>

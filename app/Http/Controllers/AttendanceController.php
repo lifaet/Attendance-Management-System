@@ -165,6 +165,70 @@ class AttendanceController extends Controller
         return redirect()->route('classes.attendance.show', $record)
             ->with('success', 'Attendance record updated successfully.');
     }
+
+    /**
+     * Approve an attendance record
+     */
+    public function approve(ClassRoom $class, AttendanceRecord $record)
+    {
+        $this->authorize('takeAttendance', $class);
+
+        if ($record->class_id !== $class->id) {
+            abort(404);
+        }
+
+        $record->update([
+            'status' => 'present', // Change status from pending to present
+            'approval_notes' => 'Approved by teacher'
+        ]);
+
+        return redirect()->back()->with('success', 'Attendance record approved successfully.');
+    }
+
+    /**
+     * Reject an attendance record
+     */
+    public function reject(ClassRoom $class, AttendanceRecord $record)
+    {
+        $this->authorize('takeAttendance', $class);
+
+        if ($record->class_id !== $class->id) {
+            abort(404);
+        }
+
+        $record->update([
+            'status' => 'rejected',
+            'approval_notes' => 'Rejected by teacher'
+        ]);
+
+        return redirect()->back()->with('success', 'Attendance record rejected successfully.');
+    }
+
+    /**
+     * Display pending attendance records for a class
+     */
+    public function pending(ClassRoom $class)
+    {
+        $this->authorize('takeAttendance', $class);
+
+        // Get the active session
+        $activeSession = $class->activeSession();
+        if (!$activeSession) {
+            return redirect()->back()->with('error', 'No active session found.');
+        }
+
+        $pendingRecords = AttendanceRecord::where('class_id', $class->id)
+            ->where('class_session_id', $activeSession->id)
+            ->where('status', 'pending')
+            ->with(['student'])
+            ->get();
+
+        return view('attendance.pending', [
+            'class' => $class,
+            'activeSession' => $activeSession,
+            'pendingRecords' => $pendingRecords
+        ]);
+    }
 }
 
 

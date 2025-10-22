@@ -22,13 +22,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(['auth'])
         ->name('dashboard');
 
-    // Class Session routes
-    Route::middleware(['auth'])->group(function () {
-        Route::post('/classes/{class}/sessions', [ClassSessionController::class, 'store'])->name('classes.sessions.store');
-        Route::put('/sessions/{session}/end', [ClassSessionController::class, 'end'])->name('classes.sessions.end');
-        Route::get('/sessions/{session}', [ClassSessionController::class, 'show'])->name('classes.sessions.show');
-    });
-
     // User management routes (admin only)
     Route::middleware(['role:admin'])->group(function () {
         Route::resource('users', UserController::class);
@@ -41,12 +34,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/', [ProfileController::class, 'destroy'])->name('destroy');
     });
     
-    // Admin and teacher class management
+    // Class management routes
     Route::prefix('classes')->name('classes.')->group(function () {
-        // Routes accessible by both admin and teacher
+        // Base routes for all roles
+        Route::get('/', [ClassRoomController::class, 'index'])->name('index');
+        Route::get('/{class}', [ClassRoomController::class, 'show'])->name('show');
+        
+        // Shared attendance routes for admin and teacher
         Route::middleware(['role:admin,teacher'])->group(function () {
-            Route::get('/', [ClassRoomController::class, 'index'])->name('index');
-            Route::get('/{class}', [ClassRoomController::class, 'show'])->name('show');
+            Route::get('/{class}/attendance/report', [AttendanceController::class, 'report'])
+                ->name('attendance.report');
+            Route::get('/{class}/attendance/pending', [AttendanceController::class, 'pending'])
+                ->name('attendance.pending');
+            Route::post('/{class}/attendance/{record}/approve', [AttendanceController::class, 'approve'])
+                ->name('attendance.approve');
+            Route::post('/{class}/attendance/{record}/reject', [AttendanceController::class, 'reject'])
+                ->name('attendance.reject');
+
+            // Explicit report route
+            Route::get('/{class}/report', [AttendanceController::class, 'report'])
+                ->name('attendance.report');
         });
 
         // Admin only routes
@@ -60,20 +67,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/{class}/assign-students', [ClassRoomController::class, 'assignStudents'])->name('assign.students');
         });
         
-        // Teacher only routes
+        // Teacher class and attendance management
         Route::middleware('role:teacher')->group(function () {
-            Route::get('/{class}/attendance', [AttendanceController::class, 'create'])->name('attendance.create');
-            Route::post('/{class}/attendance/store', [AttendanceController::class, 'store'])->name('attendance.store');
-            Route::get('/attendance/{record}', [AttendanceController::class, 'show'])->name('attendance.show');
-            Route::get('/attendance/{record}/edit', [AttendanceController::class, 'edit'])->name('attendance.edit');
-            Route::put('/attendance/{record}', [AttendanceController::class, 'update'])->name('attendance.update');
+            // Session management
+            Route::post('/{class}/sessions', [ClassSessionController::class, 'store'])->name('sessions.store');
+            Route::put('/sessions/{session}/end', [ClassSessionController::class, 'end'])->name('sessions.end');
+            
+            // Attendance management
+            Route::get('/{class}/attendance/pending', [AttendanceController::class, 'pending'])->name('attendance.pending');
+            Route::post('/{class}/attendance/{record}/approve', [AttendanceController::class, 'approve'])->name('attendance.approve');
+            Route::post('/{class}/attendance/{record}/reject', [AttendanceController::class, 'reject'])->name('attendance.reject');
         });
 
-        // Student attendance UI
+        // Student attendance
         Route::middleware('role:student')->group(function () {
-            Route::get('/attendance', [StudentAttendanceController::class, 'show'])->name('attendance.student');
-            Route::post('/{class}/attendance', [StudentAttendanceController::class, 'mark'])->name('attendance.student.post');
-            Route::get('/attendance/stats', [StudentAttendanceController::class, 'stats'])->name('student.attendance.stats');
+            Route::get('/student', [StudentAttendanceController::class, 'index'])->name('student.index');
+            Route::post('/{class}/attendance/mark', [StudentAttendanceController::class, 'mark'])->name('attendance.mark');
+            Route::get('/{class}/attendance/report', [StudentAttendanceController::class, 'report'])
+                ->name('attendance.student.report');
         });
     });
 });
