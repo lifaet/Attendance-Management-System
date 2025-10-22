@@ -55,7 +55,7 @@
                                         {{ $record->present_count }}/{{ $record->total_count }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <a href="{{ route('attendance.show', $record) }}" class="text-blue-600 hover:text-blue-800">
+                                        <a href="{{ route('classes.attendance.show', $record) }}" class="text-blue-600 hover:text-blue-800">
                                             View Details
                                         </a>
                                     </td>

@@ -11,11 +11,9 @@
                     </div>
                 </div>
 
-                <form action="{{ route('attendance.update', $record) }}" method="POST">
+                    <form action="{{ route('classes.attendance.update', $record) }}" method="POST">
                     @csrf
-                    @method('PUT')
-                    
-                    <div class="space-y-6">
+                    @method('PUT')                    <div class="space-y-6">
                         <div>
                             <label class="block text-sm font-medium text-gray-700">Status</label>
                             <select name="status" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm">

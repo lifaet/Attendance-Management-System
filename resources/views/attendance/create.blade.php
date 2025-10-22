@@ -7,7 +7,7 @@
                     <p class="text-gray-600">{{ $class->schedule }} - {{ $class->room }}</p>
                 </div>
 
-                <form action="{{ route('attendance.store', $class) }}" method="POST">
+                <form action="{{ route('classes.attendance.store', $class) }}" method="POST">
                     @csrf
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-200">

@@ -126,4 +126,45 @@ class AttendanceController extends Controller
 
         return redirect()->back()->with('success','Attendance updated!');
     }
+
+    public function show(AttendanceRecord $record)
+    {
+        $user = auth()->user();
+        // allow admin, the student himself, or the class teacher
+        if (! ($user->role === 'admin' || $record->student_id === $user->id || $record->class->teacher_id === $user->id)) {
+            abort(403);
+        }
+
+        return view('attendance.show', compact('record'));
+    }
+
+    public function edit(AttendanceRecord $record)
+    {
+        $user = auth()->user();
+        if (! ($user->role === 'admin' || $record->class->teacher_id === $user->id)) {
+            abort(403);
+        }
+
+        return view('attendance.edit', compact('record'));
+    }
+
+    public function update(Request $request, AttendanceRecord $record)
+    {
+        $user = auth()->user();
+        if (! ($user->role === 'admin' || $record->class->teacher_id === $user->id)) {
+            abort(403);
+        }
+
+        $validated = $request->validate([
+            'status' => ['required', 'in:present,absent,late'],
+            'notes' => ['nullable', 'string', 'max:255']
+        ]);
+
+        $record->update($validated);
+
+        return redirect()->route('classes.attendance.show', $record)
+            ->with('success', 'Attendance record updated successfully.');
+    }
 }
+
+
