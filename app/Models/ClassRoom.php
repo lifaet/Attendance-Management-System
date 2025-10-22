@@ -28,6 +28,25 @@ class ClassRoom extends Model
 
     public function attendanceRecords() {
         return $this->hasMany(AttendanceRecord::class, 'class_id');
+        }
+
+        public function sessions() {
+            return $this->hasMany(ClassSession::class, 'class_id');
+        }
+
+        public function activeSession() {
+            return $this->sessions()->where('status', 'active')->first();
+        }
+
+        public function hasActiveSession() {
+            return $this->sessions()->where('status', 'active')->exists();
+        }
+
+        public function startSession() {
+            return $this->sessions()->create([
+                'started_at' => now(),
+                'status' => 'active'
+            ]);
     }
 
     public function getAttendanceForDate($date) {

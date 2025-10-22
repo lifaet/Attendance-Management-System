@@ -50,13 +50,13 @@
                             @foreach($recentAttendance as $record)
                                 <tr>
                                     <td class="px-6 py-4 whitespace-nowrap">{{ $record->class->name }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap">{{ $record->created_at->format('M d, Y') }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap">{{ date('M d, Y', strtotime($record->date)) }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap">
                                         {{ $record->present_count }}/{{ $record->total_count }}
                                     </td>
                                     <td class="px-6 py-4 whitespace-nowrap">
-                                        <a href="{{ route('classes.attendance.show', $record) }}" class="text-blue-600 hover:text-blue-800">
-                                            View Details
+                                        <a href="{{ route('classes.show', $record->class->id) }}" class="text-blue-600 hover:text-blue-800">
+                                            View Class
                                         </a>
                                     </td>
                                 </tr>

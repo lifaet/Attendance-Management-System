@@ -38,5 +38,20 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(ClassRoom::class, 'class_student', 'student_id', 'class_id');
     }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isTeacher(): bool
+    {
+        return $this->role === self::ROLE_TEACHER;
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->role === self::ROLE_STUDENT;
+    }
 }
 

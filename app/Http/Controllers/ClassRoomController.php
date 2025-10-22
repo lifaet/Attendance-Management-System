@@ -2,19 +2,35 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
 use App\Models\ClassRoom;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ClassRoomController extends Controller
 {
+    public function __construct()
+    {
+        $this->authorizeResource(ClassRoom::class, 'class');
+    }
+
     public function index()
     {
         $user = auth()->user();
+        $classes = null;
+        $teachers = null;
 
-        if ($user->role === 'teacher') {
-            $classes = $user->teacherClasses()->get(); // assumes teacherClasses() relation
+        if ($user->role === 'admin') {
+            $classes = ClassRoom::with(['teacher', 'students'])->get();
+            $teachers = User::where('role', 'teacher')->get();
+            $students = User::where('role', 'student')->get();
+            return view('classes.admin-index', compact('classes', 'teachers', 'students'));
+        } elseif ($user->role === 'teacher') {
+            $classes = $user->teacherClasses()->with('students')->get();
+            return view('classes.teacher-index', compact('classes'));
         } else {
-            $classes = $user->classes()->get(); // assumes classes() relation for students
+            $classes = $user->classes()->with('teacher')->get();
+            return view('classes.student-index', compact('classes'));
         }
 
         return view('dashboard', compact('classes'));
@@ -89,6 +105,68 @@ class ClassRoomController extends Controller
 
         return redirect()->route('classes.show', $class)
             ->with('success', 'Class updated successfully.');
+    }
+
+    public function destroy(ClassRoom $class)
+    {
+        $this->authorize('delete', $class);
+
+        DB::beginTransaction();
+        try {
+            // Delete related records first
+            $class->attendanceRecords()->delete();
+            $class->sessions()->delete();
+            $class->students()->detach();
+            $class->delete();
+            
+            DB::commit();
+            return redirect()->route('classes.index')
+                ->with('success', 'Class deleted successfully.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->with('error', 'Failed to delete class. Please try again.');
+        }
+    }
+
+    public function assignTeacher(Request $request, ClassRoom $class)
+    {
+        $this->authorize('update', $class);
+        
+        $validated = $request->validate([
+            'teacher_id' => ['required', 'exists:users,id']
+        ]);
+
+        $teacher = User::findOrFail($validated['teacher_id']);
+        if ($teacher->role !== 'teacher') {
+            return back()->with('error', 'Selected user is not a teacher.');
+        }
+
+        $class->update(['teacher_id' => $validated['teacher_id']]);
+
+        return back()->with('success', 'Teacher assigned successfully.');
+    }
+
+    public function assignStudents(Request $request, ClassRoom $class)
+    {
+        $this->authorize('update', $class);
+        
+        $validated = $request->validate([
+            'student_ids' => ['required', 'array'],
+            'student_ids.*' => ['exists:users,id']
+        ]);
+
+        // Verify all users are students
+        $students = User::whereIn('id', $validated['student_ids'])
+            ->where('role', 'student')
+            ->get();
+
+        if ($students->count() !== count($validated['student_ids'])) {
+            return back()->with('error', 'One or more selected users are not students.');
+        }
+
+        $class->students()->sync($validated['student_ids']);
+
+        return back()->with('success', 'Students assigned successfully.');
     }
 }
 

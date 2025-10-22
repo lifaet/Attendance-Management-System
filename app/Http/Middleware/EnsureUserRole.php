@@ -17,10 +17,17 @@ class EnsureUserRole
      */
     public function handle(Request $request, Closure $next, string ...$roles)
     {
-        $user = $request->user();
+        if (!$request->user()) {
+            return redirect()->route('login');
+        }
 
-        if (! $user || ! in_array($user->role, $roles)) {
-            abort(403);
+        $user = $request->user();
+        $allowedRoles = collect($roles)->map(function($role) {
+            return explode(',', $role);
+        })->flatten()->unique()->all();
+
+        if (!in_array($user->role, $allowedRoles)) {
+            return abort(403, 'You do not have permission to access this resource.');
         }
 
         return $next($request);
