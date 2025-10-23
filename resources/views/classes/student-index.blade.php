@@ -36,16 +36,21 @@
                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 @foreach($activeClasses as $class)
                                     <div class="border rounded-lg p-4">
-                                        <h4 class="font-semibold mb-2">{{ $class->name }}</h4>
-                                        <p class="text-sm text-gray-600">Teacher: {{ $class->teacher->name }}</p>
-                                        <p class="text-sm text-gray-600">Started: {{ $class->activeSession()->started_at->format('H:i') }}</p>
+                                            <h4 class="font-semibold mb-2">{{ $class->name }}</h4>
+                                            <p class="text-sm text-gray-600">Teacher: {{ $class->teacher->name }}</p>
+                                            @php $session = $class->activeSession(); @endphp
+                                            @if($session)
+                                                <p class="text-sm text-gray-600">Started: {{ $session->started_at->format('H:i') }}</p>
 
-                                        @php
-                                            $attendance = $class->attendanceRecords()
-                                                ->where('student_id', auth()->id())
-                                                ->where('class_session_id', $class->activeSession()->id)
-                                                ->first();
-                                        @endphp
+                                                @php
+                                                    $attendance = $class->attendanceRecords()
+                                                        ->where('student_id', auth()->id())
+                                                        ->where('class_session_id', $session->id)
+                                                        ->first();
+                                                @endphp
+                                            @else
+                                                @php $attendance = null; @endphp
+                                            @endif
 
                                         <div class="mt-4">
                                             @if($attendance)

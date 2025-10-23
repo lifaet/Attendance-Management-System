@@ -22,14 +22,19 @@
                             <div class="bg-white p-4 rounded-lg shadow border-l-4 border-green-500">
                                 <h4 class="text-xl font-semibold">{{ $class->name }}</h4>
                                 <p class="text-gray-600">Teacher: {{ $class->teacher->name }}</p>
-                                <p class="text-gray-600">Started: {{ $class->activeSession()->started_at->format('H:i') }}</p>
-                                
-                                @php
-                                    $attendance = $class->attendanceRecords()
-                                        ->where('student_id', auth()->id())
-                                        ->where('class_session_id', $class->activeSession()->id)
-                                        ->first();
-                                @endphp
+                                @php $session = $class->activeSession(); @endphp
+                                @if($session)
+                                    <p class="text-gray-600">Started: {{ $session->started_at->format('H:i') }}</p>
+
+                                    @php
+                                        $attendance = $class->attendanceRecords()
+                                            ->where('student_id', auth()->id())
+                                            ->where('class_session_id', $session->id)
+                                            ->first();
+                                    @endphp
+                                @else
+                                    @php $attendance = null; @endphp
+                                @endif
 
                                 <div class="mt-4">
                                     @if($attendance)

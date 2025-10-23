@@ -32,16 +32,18 @@ class DatabaseSeeder extends Seeder
                 // Seed attendance for the last 5 days
                 foreach (range(0,4) as $daysAgo) {
                     $date = now()->subDays($daysAgo)->startOfDay();
-                    foreach ($assigned as $student) {
-                        AttendanceRecord::create([
-                            'class_id' => $class->id,
-                            'student_id' => $student->id,
-                            'status' => (rand(1,100) > 20) ? 'present' : 'absent',
-                            'notes' => null,
-                            'created_at' => $date,
-                            'updated_at' => $date,
-                        ]);
-                    }
+                        foreach ($assigned as $student) {
+                            AttendanceRecord::create([
+                                'class_id' => $class->id,
+                                'student_id' => $student->id,
+                                'class_session_id' => null,
+                                'status' => (rand(1,100) > 20) ? 'present' : 'absent',
+                                'notes' => null,
+                                'marked_at' => $date->addMinutes(rand(0,60)),
+                                'created_at' => $date,
+                                'updated_at' => $date,
+                            ]);
+                        }
                 }
             });
     }

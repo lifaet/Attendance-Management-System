@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ClassRoom;
 use App\Models\ClassSession;
+use App\Models\AttendanceRecord;
 use Illuminate\Http\Request;
 
 class ClassSessionController extends Controller
@@ -22,6 +23,9 @@ class ClassSessionController extends Controller
             'status' => 'active'
         ]);
 
+        // Note: Do not pre-seed attendance records. Sessions should start with zero attendance.
+        // Students will create their attendance record when they mark during an active session.
+
         return back()->with('success', 'Class session started successfully.');
     }
 
@@ -33,9 +37,18 @@ class ClassSessionController extends Controller
             return back()->with('error', 'This session has already ended.');
         }
 
+        // Finalize any pending attendance records as absent
+        $session->attendanceRecords()
+            ->where('status', 'pending')
+            ->update([
+                'status' => 'absent',
+                'approval_notes' => 'Automatically marked absent at session end',
+                'marked_at' => now(),
+            ]);
+
         $session->end();
 
-        return back()->with('success', 'Class session ended successfully.');
+        return back()->with('success', 'Class session ended successfully. All pending attendance records have been finalized.');
     }
 
     public function show(ClassSession $session)

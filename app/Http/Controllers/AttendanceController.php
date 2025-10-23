@@ -25,15 +25,22 @@ class AttendanceController extends Controller
             'notes' => 'nullable|string|max:255'
         ])->validate();
 
+        // Ensure there's an active session
+        $activeSession = $class->activeSession();
+        if (! $activeSession) {
+            return response()->json(['message' => 'No active session'], 422);
+        }
+
         $record = AttendanceRecord::updateOrCreate(
             [
                 'class_id' => $class->id,
-                'student_id' => $validated['student_id'],
-                'created_at' => now()->startOfDay()
+                'class_session_id' => $activeSession->id,
+                'student_id' => $validated['student_id']
             ],
             [
                 'status' => $validated['status'],
-                'notes' => $validated['notes'] ?? null
+                'notes' => $validated['notes'] ?? null,
+                'marked_at' => now(),
             ]
         );
 
@@ -54,14 +61,20 @@ class AttendanceController extends Controller
     {
         $this->authorize('takeAttendance', $class);
 
+        $activeSession = $class->activeSession();
+        if (! $activeSession) {
+            return redirect()->back()->with('error', 'No active session to take attendance for.');
+        }
+
         $existingAttendance = $class->attendanceRecords()
-            ->whereDate('created_at', today())
+            ->where('class_session_id', $activeSession->id)
             ->get()
             ->keyBy('student_id');
 
         return view('attendance.create', [
             'class' => $class->load('students'),
-            'existingAttendance' => $existingAttendance
+            'existingAttendance' => $existingAttendance,
+            'session' => $activeSession,
         ]);
     }
 
@@ -69,6 +82,11 @@ class AttendanceController extends Controller
     public function store(Request $request, ClassRoom $class)
     {
         $this->authorize('takeAttendance', $class);
+
+        $activeSession = $class->activeSession();
+        if (! $activeSession) {
+            return redirect()->back()->with('error', 'No active session to record attendance for.');
+        }
 
         $validated = $request->validate([
             'attendance.*.student_id' => ['required', 'exists:users,id'],
@@ -80,18 +98,19 @@ class AttendanceController extends Controller
             AttendanceRecord::updateOrCreate(
                 [
                     'class_id' => $class->id,
+                    'class_session_id' => $activeSession->id,
                     'student_id' => $record['student_id'],
-                    'created_at' => now()->startOfDay()
                 ],
                 [
                     'status' => $record['status'],
-                    'notes' => $record['notes'] ?? null
+                    'notes' => $record['notes'] ?? null,
+                    'marked_at' => now(),
                 ]
             );
         }
 
         return redirect()->route('classes.show', $class)
-            ->with('success', 'Attendance recorded successfully.');
+            ->with('success', 'Attendance recorded successfully for the active session.');
     }
 
     // View for students to quickly mark attendance (AJAX)

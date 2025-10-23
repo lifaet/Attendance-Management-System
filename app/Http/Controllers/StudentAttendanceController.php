@@ -45,36 +45,44 @@ class StudentAttendanceController extends Controller
             return back()->with('error', 'No active session for this class.');
         }
 
-        // Check if attendance was already marked for this session
-        $existingRecord = AttendanceRecord::where([
-            'class_id' => $class->id,
-            'student_id' => $user->id,
-            'class_session_id' => $activeSession->id,
-        ])->first();
-
-        if ($existingRecord) {
-            return back()->with('error', 'You have already marked your attendance for this session.');
-        $existingRecord = AttendanceRecord::where([
-            'student_id' => $user->id,
-            'class_id' => $class->id,
-            'class_session_id' => $activeSession->id,
-        ])->first();
-
-        if ($existingRecord) {
-            if ($existingRecord->status === 'present') {
-                return back()->with('info', 'Your attendance has already been marked for this session.');
-            } elseif ($existingRecord->status === 'rejected') {
-                return back()->with('error', 'Your attendance was rejected for this session. Please contact your teacher.');
-            }
-        }
-
         // Validate the request
         $request->validate([
             'notes' => 'nullable|string|max:500',
         ]);
 
-        // Create new attendance record
-        $record = AttendanceRecord::create([
+        // Try to find an existing session-scoped attendance record
+        $record = AttendanceRecord::where([
+            'class_id' => $class->id,
+            'student_id' => $user->id,
+            'class_session_id' => $activeSession->id,
+        ])->first();
+
+        if ($record) {
+            // Handle existing record states
+            if ($record->status === 'present') {
+                return back()->with('info', 'Your attendance has already been marked for this session.');
+            }
+
+            if ($record->status === 'pending') {
+                return back()->with('info', 'Your attendance is already pending approval.');
+            }
+
+            if ($record->status === 'rejected') {
+                return back()->with('error', 'Your previous attendance attempt was rejected. Please contact your teacher.');
+            }
+
+            // Update the existing record to pending
+            $record->update([
+                'status' => 'pending',
+                'notes' => $request->input('notes'),
+                'marked_at' => now(),
+            ]);
+
+            return back()->with('success', 'Attendance marked successfully and awaiting teacher approval.');
+        }
+
+        // If no pre-seeded record exists (edge-case), create one for this session
+        AttendanceRecord::create([
             'student_id' => $user->id,
             'class_id' => $class->id,
             'class_session_id' => $activeSession->id,

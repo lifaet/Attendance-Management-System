@@ -8,18 +8,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('attendance_records', function (Blueprint $table) {
+        Schema::create('classes', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('class_id')->constrained('classes')->onDelete('cascade');
-            $table->foreignId('student_id')->constrained('users')->onDelete('cascade');
-            $table->enum('status', ['present', 'absent', 'late'])->default('present'); // ✅ Add this line
-            $table->text('notes')->nullable();
+            $table->string('name');
+            $table->text('description')->nullable();
+            $table->string('schedule')->nullable();
+            $table->string('room')->nullable();
+            $table->foreignId('teacher_id')->nullable()->constrained('users')->onDelete('set null');
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('attendance_records');
+        Schema::dropIfExists('classes');
     }
 };

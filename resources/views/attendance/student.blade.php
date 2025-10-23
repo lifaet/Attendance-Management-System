@@ -17,14 +17,22 @@
                                 <div class="border rounded-lg p-4">
                                     <h4 class="font-semibold mb-2">{{ $class->name }}</h4>
                                     <p class="text-sm text-gray-600">Teacher: {{ $class->teacher->name }}</p>
-                                    <p class="text-sm text-gray-600">Session started: {{ $class->activeSession->started_at->format('H:i') }}</p>
-                                    
                                     @php
-                                        $existingRecord = $class->attendanceRecords()
-                                            ->where('student_id', auth()->id())
-                                            ->where('class_session_id', $class->activeSession->id)
-                                            ->first();
+                                        $session = $class->activeSession();
                                     @endphp
+
+                                    @if($session)
+                                        <p class="text-sm text-gray-600">Session started: {{ $session->started_at->format('H:i') }}</p>
+
+                                        @php
+                                            $existingRecord = $class->attendanceRecords()
+                                                ->where('student_id', auth()->id())
+                                                ->where('class_session_id', $session->id)
+                                                ->first();
+                                        @endphp
+                                    @else
+                                        @php $existingRecord = null; @endphp
+                                    @endif
 
                                     @if($existingRecord)
                                         <div class="mt-3">
