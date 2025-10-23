@@ -30,7 +30,10 @@ class DashboardController extends Controller
             'teachers' => User::where('role', 'teacher')->count(),
             'classes' => ClassRoom::count(),
             'todayAttendanceRate' => $this->calculateTodayAttendanceRate(),
-            'activeClasses' => ClassRoom::has('attendanceRecords')->whereDate('created_at', today())->count()
+            // Count classes that have sessions started today or currently active
+            'activeClasses' => ClassRoom::whereHas('sessions', function ($q) {
+                $q->whereDate('started_at', today())->orWhere('status', 'active');
+            })->count()
         ];
 
         $recentActivity = AttendanceRecord::with(['student', 'class'])
@@ -78,13 +81,27 @@ class DashboardController extends Controller
 
     protected function calculateTodayAttendanceRate()
     {
-        $records = AttendanceRecord::whereDate('created_at', today())->get();
-        
-        if ($records->isEmpty()) {
+        // Consider only attendance records that belong to sessions started today
+        $todaySessions = \App\Models\ClassSession::whereDate('started_at', today())->get();
+
+        if ($todaySessions->isEmpty()) {
             return 0;
         }
 
-        $presentCount = $records->where('status', 'present')->count();
-        return round(($presentCount / $records->count()) * 100, 1);
+        $total = 0;
+        $present = 0;
+
+        foreach ($todaySessions as $session) {
+            $count = $session->attendanceRecords()->count();
+            $presentCount = $session->attendanceRecords()->where('status', 'present')->count();
+            $total += $count;
+            $present += $presentCount;
+        }
+
+        if ($total === 0) {
+            return 0;
+        }
+
+        return round(($present / $total) * 100, 1);
     }
 }

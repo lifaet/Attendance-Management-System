@@ -6,6 +6,7 @@ use App\Models\ClassRoom;
 use App\Models\ClassSession;
 use App\Models\AttendanceRecord;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ClassSessionController extends Controller
 {
@@ -37,8 +38,10 @@ class ClassSessionController extends Controller
             return back()->with('error', 'This session has already ended.');
         }
 
+        Log::info('ClassSessionController::end - finalizing session', ['session_id' => $session->id]);
+
         // Finalize any pending attendance records as absent
-        $session->attendanceRecords()
+        $updated = $session->attendanceRecords()
             ->where('status', 'pending')
             ->update([
                 'status' => 'absent',
@@ -46,7 +49,12 @@ class ClassSessionController extends Controller
                 'marked_at' => now(),
             ]);
 
+        Log::info('ClassSessionController::end - pending updated count', ['session_id' => $session->id, 'updated' => $updated]);
+
         $session->end();
+
+        $session->refresh();
+        Log::info('ClassSessionController::end - session after end', ['session_id' => $session->id, 'status' => $session->status, 'ended_at' => $session->ended_at]);
 
         return back()->with('success', 'Class session ended successfully. All pending attendance records have been finalized.');
     }

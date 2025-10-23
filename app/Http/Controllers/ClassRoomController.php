@@ -38,23 +38,25 @@ class ClassRoomController extends Controller
 
     public function show(ClassRoom $class)
     {
-        $attendanceSummary = $class->attendanceRecords()
-            ->selectRaw('DATE(created_at) as date')
-            ->selectRaw('SUM(CASE WHEN status = "present" THEN 1 ELSE 0 END) as present')
-            ->selectRaw('SUM(CASE WHEN status = "late" THEN 1 ELSE 0 END) as late')
-            ->selectRaw('SUM(CASE WHEN status = "absent" THEN 1 ELSE 0 END) as absent')
-            ->groupBy('date')
-            ->orderByDesc('date')
+        // Use session-scoped attendance summary. Each ClassSession is an independent attendance.
+        $sessions = $class->sessions()
+            ->orderByDesc('started_at')
             ->limit(10)
-            ->get()
-            ->map(function ($row) {
-                return [
-                    'date' => \Carbon\Carbon::parse($row->date),
-                    'present' => $row->present,
-                    'late' => $row->late,
-                    'absent' => $row->absent
-                ];
-            });
+            ->get();
+
+        $attendanceSummary = $sessions->map(function ($session) {
+            $present = $session->attendanceRecords()->where('status', 'present')->count();
+            $late = $session->attendanceRecords()->where('status', 'late')->count();
+            $absent = $session->attendanceRecords()->where('status', 'absent')->count();
+
+            return [
+                'session' => $session,
+                'date' => $session->started_at,
+                'present' => $present,
+                'late' => $late,
+                'absent' => $absent,
+            ];
+        });
 
         return view('classes.show', compact('class', 'attendanceSummary'));
     }

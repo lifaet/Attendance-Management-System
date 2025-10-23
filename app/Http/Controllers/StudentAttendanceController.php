@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ClassRoom;
 use App\Models\AttendanceRecord;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class StudentAttendanceController extends Controller
 {
@@ -33,15 +34,15 @@ class StudentAttendanceController extends Controller
 
     public function mark(Request $request, ClassRoom $class)
     {
-        $this->authorize('markAttendance', $class);
-
         $user = $request->user();
-        if (!$class->students()->where('id', $user->id)->exists()) {
+        // qualify the users table to avoid ambiguous `id` when the relation joins
+        if (!$class->students()->where('users.id', $user->id)->exists()) {
             return back()->with('error', 'You are not enrolled in this class.');
         }
 
         $activeSession = $class->activeSession();
         if (!$activeSession) {
+            Log::info('StudentAttendanceController::mark - no active session', ['class_id' => $class->id, 'student_id' => $user->id]);
             return back()->with('error', 'No active session for this class.');
         }
 
@@ -71,6 +72,7 @@ class StudentAttendanceController extends Controller
                 return back()->with('error', 'Your previous attendance attempt was rejected. Please contact your teacher.');
             }
 
+            Log::info('StudentAttendanceController::mark - updating existing record to pending', ['record_id' => $record->id]);
             // Update the existing record to pending
             $record->update([
                 'status' => 'pending',
@@ -81,6 +83,7 @@ class StudentAttendanceController extends Controller
             return back()->with('success', 'Attendance marked successfully and awaiting teacher approval.');
         }
 
+        Log::info('StudentAttendanceController::mark - creating new attendance record', ['class_id' => $class->id, 'session_id' => $activeSession->id, 'student_id' => $user->id]);
         // If no pre-seeded record exists (edge-case), create one for this session
         AttendanceRecord::create([
             'student_id' => $user->id,
